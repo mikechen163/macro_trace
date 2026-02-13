@@ -1,455 +1,538 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>全球宏观数据追踪</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-tailwind.config = {
-theme: {
-extend: {
-colors: {
-primary: '#0f172a',
-secondary: '#1e293b',
-card: 'rgba(30, 41, 59, 0.7)',
-accent: '#fbbf24',
-accent2: '#06b6d4',
-up: '#10b981',
-down: '#ef4444',
-muted: '#64748b'
-}
-}
-}
-}
-</script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-* { font-family: 'Inter', sans-serif; }
-body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%); }
-.glass {
-background: rgba(30, 41, 59, 0.6);
-backdrop-filter: blur(20px);
-border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.glass-strong {
-background: rgba(30, 41, 59, 0.85);
-backdrop-filter: blur(30px);
-border: 1px solid rgba(255, 255, 255, 0.15);
-}
-.sparkline { stroke-linecap: round; stroke-linejoin: round; fill: none; }
-.pulse-dot {
-animation: pulse 2s infinite;
-}
-@keyframes pulse {
-0%, 100% { opacity: 1; }
-50% { opacity: 0.5; }
-}
-.card-hover {
-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.card-hover:hover {
-transform: translateY(-4px);
-box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(251, 191, 36, 0.1);
-border-color: rgba(251, 191, 36, 0.3);
-}
-.refresh-spin {
-animation: spin 1s linear infinite;
-}
-@keyframes spin {
-from { transform: rotate(0deg); }
-to { transform: rotate(360deg); }
-}
-.fade-in {
-animation: fadeIn 0.5s ease-out;
-}
-@keyframes fadeIn {
-from { opacity: 0; transform: translateY(10px); }
-to { opacity: 1; transform: translateY(0); }
-}
-.number-update {
-animation: numberFlash 0.3s ease-out;
-}
-@keyframes numberFlash {
-0% { color: #fbbf24; }
-100% { color: inherit; }
-}
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: rgba(30, 41, 59, 0.5); }
-::-webkit-scrollbar-thumb { background: rgba(251, 191, 36, 0.5); border-radius: 3px; }
-</style>
-</head>
-<body class="min-h-screen text-white">
-<!-- Header -->
-<header class="glass-strong sticky top-0 z-50 px-4 py-3 md:px-6 md:py-4">
-<div class="max-w-7xl mx-auto flex items-center justify-between">
-<div class="flex items-center gap-3">
-<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-amber-600 flex items-center justify-center">
-<i class="fas fa-chart-line text-primary text-lg"></i>
-</div>
-<div>
-<h1 class="text-lg md:text-xl font-bold text-white">MacroTracker</h1>
-<p class="text-xs text-muted hidden sm:block">全球宏观数据追踪</p>
-</div>
-</div>
-<div class="flex items-center gap-2 md:gap-4">
-<div class="flex items-center gap-2 text-xs text-muted">
-<span class="pulse-dot w-2 h-2 rounded-full bg-up"></span>
-<span class="hidden sm:inline">实时更新</span>
-</div>
-<button id="refreshBtn" class="glass px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-all flex items-center gap-2">
-<i class="fas fa-sync-alt" id="refreshIcon"></i>
-<span class="hidden sm:inline">刷新</span>
-</button>
-</div>
-</div>
-</header>
-
-<!-- Main Content -->
-<main class="max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-8">
-<!-- Stats Overview -->
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-<div class="glass rounded-2xl p-4 fade-in">
-<p class="text-xs text-muted mb-1">追踪资产</p>
-<p class="text-2xl font-bold text-accent" id="totalAssets">12</p>
-</div>
-<div class="glass rounded-2xl p-4 fade-in" style="animation-delay: 0.1s">
-<p class="text-xs text-muted mb-1">上涨资产</p>
-<p class="text-2xl font-bold text-up" id="upCount">7</p>
-</div>
-<div class="glass rounded-2xl p-4 fade-in" style="animation-delay: 0.2s">
-<p class="text-xs text-muted mb-1">下跌资产</p>
-<p class="text-2xl font-bold text-down" id="downCount">5</p>
-</div>
-<div class="glass rounded-2xl p-4 fade-in" style="animation-delay: 0.3s">
-<p class="text-xs text-muted mb-1">最后更新</p>
-<p class="text-sm font-medium text-white" id="lastUpdate">--:--:--</p>
-</div>
-</div>
-
-<!-- Filter Tabs -->
-<div class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-<button class="filter-btn active glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all" data-filter="all">
-<i class="fas fa-globe mr-2"></i>全部
-</button>
-<button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all" data-filter="commodity">
-<i class="fas fa-coins mr-2"></i>大宗商品
-</button>
-<button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all" data-filter="forex">
-<i class="fas fa-exchange-alt mr-2"></i>外汇
-</button>
-<button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all" data-filter="index">
-<i class="fas fa-chart-bar mr-2"></i>股指
-</button>
-<button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all" data-filter="bond">
-<i class="fas fa-landmark mr-2"></i>国债
-</button>
-</div>
-
-<!-- Data Cards Grid -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="cardsContainer">
-<!-- Cards will be generated by JavaScript -->
-</div>
-</main>
-
-<!-- Detail Modal -->
-<div id="detailModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-<div class="glass-strong rounded-3xl w-full max-w-lg max-h-[90vh] overflow-hidden">
-<div class="p-6 border-b border-white/10">
-<div class="flex items-center justify-between">
-<div class="flex items-center gap-3">
-<div id="modalIcon" class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"></div>
-<div>
-<h2 id="modalTitle" class="text-xl font-bold"></h2>
-<p id="modalSubtitle" class="text-sm text-muted"></p>
-</div>
-</div>
-<button id="closeModal" class="w-10 h-10 rounded-xl glass flex items-center justify-center hover:bg-white/10 transition-all">
-<i class="fas fa-times"></i>
-</button>
-</div>
-</div>
-<div class="p-6">
-<div class="text-center mb-6">
-<p id="modalPrice" class="text-4xl font-bold mb-2"></p>
-<p id="modalChange" class="text-lg"></p>
-</div>
-<div class="glass rounded-2xl p-4 mb-4">
-<div class="flex justify-between text-sm mb-2">
-<span class="text-muted">24h 最高</span>
-<span id="modalHigh" class="font-medium"></span>
-</div>
-<div class="flex justify-between text-sm mb-2">
-<span class="text-muted">24h 最低</span>
-<span id="modalLow" class="font-medium"></span>
-</div>
-<div class="flex justify-between text-sm mb-2">
-<span class="text-muted">开盘价</span>
-<span id="modalOpen" class="font-medium"></span>
-</div>
-<div class="flex justify-between text-sm">
-<span class="text-muted">波动率</span>
-<span id="modalVolatility" class="font-medium"></span>
-</div>
-</div>
-<div class="glass rounded-2xl p-4">
-<p class="text-sm text-muted mb-3">7日走势</p>
-<svg id="modalChart" viewBox="0 0 300 80" class="w-full h-20"></svg>
-</div>
-</div>
-</div>
-</div>
-
-<script>
-// Macro Data Configuration
-const macroData = [
-{
-id: 'gold',
-name: '黄金',
-symbol: 'GC=F',
-category: 'commodity',
-icon: 'fa-coins',
-color: '#fbbf24',
-basePrice: 2342.50,
-description: '黄金期货'
-},
-{
-id: 'silver',
-name: '白银',
-symbol: 'SI=F',
-category: 'commodity',
-icon: 'fa-circle',
-color: '#94a3b8',
-basePrice: 27.85,
-description: '白银期货'
-},
-{
-id: 'oil',
-name: '原油',
-symbol: 'CL=F',
-category: 'commodity',
-icon: 'fa-oil-can',
-color: '#1e293b',
-basePrice: 78.45,
-description: 'WTI原油期货'
-},
-{
-id: 'dxy',
-name: '美元指数',
-symbol: 'DX-Y.NYB',
-category: 'forex',
-icon: 'fa-dollar-sign',
-color: '#10b981',
-basePrice: 104.25,
-description: '美元指数DXY'
-},
-{
-id: 'usdjpy',
-name: '美元日元',
-symbol: 'USDJPY=X',
-category: 'forex',
-icon: 'fa-yen-sign',
-color: '#ef4444',
-basePrice: 154.85,
-description: 'USD/JPY汇率'
-},
-{
-id: 'usdeur',
-name: '美元欧元',
-symbol: 'USDEUR=X',
-category: 'forex',
-icon: 'fa-euro-sign',
-color: '#06b6d4',
-basePrice: 0.9235,
-description: 'USD/EUR汇率'
-},
-{
-id: 'spy',
-name: 'SPY',
-symbol: 'SPY',
-category: 'index',
-icon: 'fa-chart-line',
-color: '#3b82f6',
-basePrice: 512.35,
-description: '标普500 ETF'
-},
-{
-id: 'qqq',
-name: 'QQQ',
-symbol: 'QQQ',
-category: 'index',
-icon: 'fa-chart-area',
-color: '#8b5cf6',
-basePrice: 178.92,
-description: '纳斯达克100 ETF'
-},
-{
-id: 't10y',
-name: '10年期国债',
-symbol: '^TNX',
-category: 'bond',
-icon: 'fa-landmark',
-color: '#f59e0b',
-basePrice: 4.425,
-description: '美国10年期国债收益率'
-},
-{
-    id: 't2y',
-    name: '2年期国债',
-    symbol: '2YY=F',
-    category: 'bond',
-    icon: 'fa-landmark',
-    color: '#84cc16',
-    basePrice: 4.680,
-    description: '美国2年期国债收益率'
-  },
-{
-id: 't30y',
-name: '30年期国债',
-symbol: '^TYX',
-category: 'bond',
-icon: 'fa-landmark',
-color: '#ec4899',
-basePrice: 4.575,
-description: '美国30年期国债收益率'
-},
-{
-id: 'vix',
-name: 'VIX恐慌指数',
-symbol: '^VIX',
-category: 'index',
-icon: 'fa-bolt',
-color: '#f43f5e',
-basePrice: 13.25,
-description: '波动率指数'
-}
-];
-
-// State
-let currentData = {};
-let currentFilter = 'all';
-let isLoading = false;
-
-// Generate random price movement (fallback when API unavailable)
-function generatePrice(basePrice) {
-  const change = (Math.random() - 0.5) * 0.02 * basePrice;
-  const price = basePrice + change;
-  const changePercent = (change / basePrice) * 100;
-  return {
-    price: price,
-    change: change,
-    changePercent: changePercent,
-    isUp: change >= 0
-  };
-}
-
-// Fetch real prices from backend API
-async function fetchPrices() {
-  if (isLoading) return;
-  isLoading = true;
-  const icon = document.getElementById('refreshIcon');
-  icon.classList.add('refresh-spin');
-
-  const symbols = macroData.map(item => item.symbol);
-  try {
-    const resp = await fetch('/api/batch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ symbols })
-    });
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const result = await resp.json();
-
-    macroData.forEach(item => {
-      const d = result[item.symbol];
-      if (d) {
-        currentData[item.id] = {
-          price: d.price,
-          change: d.change,
-          changePercent: d.changePercent,
-          high: d.high,
-          low: d.low,
-          open: d.open,
-          previousClose: d.previousClose,
-          isUp: d.isUp
-        };
-      } else {
-        // Symbol not found in response, use fallback
-        if (!currentData[item.id]) {
-          currentData[item.id] = generatePrice(item.basePrice);
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全球宏观数据追踪</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#0f172a',
+            secondary: '#1e293b',
+            card: 'rgba(30, 41, 59, 0.7)',
+            accent: '#fbbf24',
+            accent2: '#06b6d4',
+            up: '#10b981',
+            down: '#ef4444',
+            muted: '#64748b'
+          }
         }
       }
-    });
-    console.log('Data fetched from API successfully');
-  } catch (err) {
-    console.warn('API unavailable, using local fallback:', err.message);
-    macroData.forEach(item => {
-      currentData[item.id] = generatePrice(item.basePrice);
-    });
-  } finally {
-    isLoading = false;
-    icon.classList.remove('refresh-spin');
-    renderCards();
-    updateTime();
-  }
-}
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+    }
 
-// Generate sparkline data
-function generateSparkline(isUp) {
-const points = [];
-let value = 50;
-for (let i = 0; i < 20; i++) {
-value += (Math.random() - 0.5) * 15;
-value = Math.max(10, Math.min(90, value));
-points.push(value);
-}
-// Trend towards up or down
-if (isUp) {
-points[points.length - 1] = Math.min(90, points[0] + 20);
-} else {
-points[points.length - 1] = Math.max(10, points[0] - 20);
-}
-return points;
-}
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    }
 
-// Create sparkline SVG path
-function createSparklinePath(points) {
-const width = 80;
-const height = 32;
-const step = width / (points.length - 1);
-let path = `M 0 ${height - points[0] * height / 100}`;
-for (let i = 1; i < points.length; i++) {
-const x = i * step;
-const y = height - points[i] * height / 100;
-path += ` L ${x} ${y}`;
-}
-return path;
-}
+    .glass {
+      background: rgba(30, 41, 59, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
 
-// Format price
-function formatPrice(price, id) {
-if (price == null || isNaN(price)) return '--';
-if (id === 'usdeur') {
-return price.toFixed(4);
-} else if (['t10y', 't2y', 't30y'].includes(id)) {
-return price.toFixed(3) + '%';
-} else if (price < 1) {
-return price.toFixed(4);
-} else if (price < 100) {
-return price.toFixed(2);
-} else {
-return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-}
+    .glass-strong {
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(30px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
 
-// Create card HTML
-function createCard(item, data) {
-const sparkline = generateSparkline(data.isUp);
-const sparklinePath = createSparklinePath(sparkline);
-const strokeColor = data.isUp ? '#10b981' : '#ef4444';
+    .sparkline {
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
 
-return `
+    .pulse-dot {
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .card-hover {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(251, 191, 36, 0.1);
+      border-color: rgba(251, 191, 36, 0.3);
+    }
+
+    .refresh-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .number-update {
+      animation: numberFlash 0.3s ease-out;
+    }
+
+    @keyframes numberFlash {
+      0% {
+        color: #fbbf24;
+      }
+
+      100% {
+        color: inherit;
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: rgba(30, 41, 59, 0.5);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(251, 191, 36, 0.5);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen text-white">
+  <!-- Header -->
+  <header class="glass-strong sticky top-0 z-50 px-4 py-3 md:px-6 md:py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-amber-600 flex items-center justify-center">
+          <i class="fas fa-chart-line text-primary text-lg"></i>
+        </div>
+        <div>
+          <h1 class="text-lg md:text-xl font-bold text-white">MacroTracker</h1>
+          <p class="text-xs text-muted hidden sm:block">全球宏观数据追踪</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 md:gap-4">
+        <div class="flex items-center gap-2 text-xs text-muted">
+          <span class="pulse-dot w-2 h-2 rounded-full bg-up"></span>
+          <span class="hidden sm:inline">实时更新</span>
+        </div>
+        <button id="refreshBtn"
+          class="glass px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-all flex items-center gap-2">
+          <i class="fas fa-sync-alt" id="refreshIcon"></i>
+          <span class="hidden sm:inline">刷新</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-8">
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+      <div class="glass rounded-2xl p-4 fade-in">
+        <p class="text-xs text-muted mb-1">追踪资产</p>
+        <p class="text-2xl font-bold text-accent" id="totalAssets">12</p>
+      </div>
+      <div class="glass rounded-2xl p-4 fade-in" style="animation-delay: 0.1s">
+        <p class="text-xs text-muted mb-1">上涨资产</p>
+        <p class="text-2xl font-bold text-up" id="upCount">7</p>
+      </div>
+      <div class="glass rounded-2xl p-4 fade-in" style="animation-delay: 0.2s">
+        <p class="text-xs text-muted mb-1">下跌资产</p>
+        <p class="text-2xl font-bold text-down" id="downCount">5</p>
+      </div>
+      <div class="glass rounded-2xl p-4 fade-in" style="animation-delay: 0.3s">
+        <p class="text-xs text-muted mb-1">最后更新</p>
+        <p class="text-sm font-medium text-white" id="lastUpdate">--:--:--</p>
+      </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+      <button class="filter-btn active glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all"
+        data-filter="all">
+        <i class="fas fa-globe mr-2"></i>全部
+      </button>
+      <button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all"
+        data-filter="commodity">
+        <i class="fas fa-coins mr-2"></i>大宗商品
+      </button>
+      <button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all"
+        data-filter="forex">
+        <i class="fas fa-exchange-alt mr-2"></i>外汇
+      </button>
+      <button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all"
+        data-filter="index">
+        <i class="fas fa-chart-bar mr-2"></i>股指
+      </button>
+      <button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all" data-filter="bond">
+        <i class="fas fa-landmark mr-2"></i>国债
+      </button>
+    </div>
+
+    <!-- Data Cards Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="cardsContainer">
+      <!-- Cards will be generated by JavaScript -->
+    </div>
+  </main>
+
+  <!-- Detail Modal -->
+  <div id="detailModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+    <div class="glass-strong rounded-3xl w-full max-w-lg max-h-[90vh] overflow-hidden">
+      <div class="p-6 border-b border-white/10">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div id="modalIcon" class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"></div>
+            <div>
+              <h2 id="modalTitle" class="text-xl font-bold"></h2>
+              <p id="modalSubtitle" class="text-sm text-muted"></p>
+            </div>
+          </div>
+          <button id="closeModal"
+            class="w-10 h-10 rounded-xl glass flex items-center justify-center hover:bg-white/10 transition-all">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+      <div class="p-6">
+        <div class="text-center mb-6">
+          <p id="modalPrice" class="text-4xl font-bold mb-2"></p>
+          <p id="modalChange" class="text-lg"></p>
+        </div>
+        <div class="glass rounded-2xl p-4 mb-4">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="text-muted" id="labelHigh">期间最高</span>
+            <span id="modalHigh" class="font-medium"></span>
+          </div>
+          <div class="flex justify-between text-sm mb-2">
+            <span class="text-muted" id="labelLow">期间最低</span>
+            <span id="modalLow" class="font-medium"></span>
+          </div>
+          <div class="flex justify-between text-sm mb-2">
+            <span class="text-muted" id="labelOpen">开盘价</span>
+            <span id="modalOpen" class="font-medium"></span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-muted">波动率</span>
+            <span id="modalVolatility" class="font-medium"></span>
+          </div>
+        </div>
+        <div class="glass rounded-2xl p-4 mb-4">
+          <p class="text-xs text-muted mb-3">时间周期</p>
+          <div class="flex flex-wrap gap-2" id="rangeSelector">
+            <button class="range-btn active glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
+              data-range="1d">1天</button>
+            <button class="range-btn glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
+              data-range="5d">5天</button>
+            <button class="range-btn glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
+              data-range="1mo">1月</button>
+            <button class="range-btn glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
+              data-range="3mo">3月</button>
+            <button class="range-btn glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
+              data-range="1y">1年</button>
+          </div>
+        </div>
+        <div class="glass rounded-2xl p-4 relative min-h-[120px]">
+          <p class="text-sm text-muted mb-3">历史走势</p>
+          <div id="chartLoading"
+            class="absolute inset-0 flex items-center justify-center bg-secondary/40 backdrop-blur-sm rounded-2xl hidden">
+            <i class="fas fa-sync-alt refresh-spin text-accent"></i>
+          </div>
+          <svg id="modalChart" viewBox="0 0 300 100" class="w-full h-24 overflow-visible"></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Macro Data Configuration
+    const macroData = [
+      {
+        id: 'gold',
+        name: '黄金',
+        symbol: 'GC=F',
+        category: 'commodity',
+        icon: 'fa-coins',
+        color: '#fbbf24',
+        basePrice: 2342.50,
+        description: '黄金期货'
+      },
+      {
+        id: 'silver',
+        name: '白银',
+        symbol: 'SI=F',
+        category: 'commodity',
+        icon: 'fa-circle',
+        color: '#94a3b8',
+        basePrice: 27.85,
+        description: '白银期货'
+      },
+      {
+        id: 'oil',
+        name: '原油',
+        symbol: 'CL=F',
+        category: 'commodity',
+        icon: 'fa-oil-can',
+        color: '#1e293b',
+        basePrice: 78.45,
+        description: 'WTI原油期货'
+      },
+      {
+        id: 'dxy',
+        name: '美元指数',
+        symbol: 'DX-Y.NYB',
+        category: 'forex',
+        icon: 'fa-dollar-sign',
+        color: '#10b981',
+        basePrice: 104.25,
+        description: '美元指数DXY'
+      },
+      {
+        id: 'usdjpy',
+        name: '美元日元',
+        symbol: 'USDJPY=X',
+        category: 'forex',
+        icon: 'fa-yen-sign',
+        color: '#ef4444',
+        basePrice: 154.85,
+        description: 'USD/JPY汇率'
+      },
+      {
+        id: 'usdeur',
+        name: '美元欧元',
+        symbol: 'USDEUR=X',
+        category: 'forex',
+        icon: 'fa-euro-sign',
+        color: '#06b6d4',
+        basePrice: 0.9235,
+        description: 'USD/EUR汇率'
+      },
+      {
+        id: 'spy',
+        name: 'SPY',
+        symbol: 'SPY',
+        category: 'index',
+        icon: 'fa-chart-line',
+        color: '#3b82f6',
+        basePrice: 512.35,
+        description: '标普500 ETF'
+      },
+      {
+        id: 'qqq',
+        name: 'QQQ',
+        symbol: 'QQQ',
+        category: 'index',
+        icon: 'fa-chart-area',
+        color: '#8b5cf6',
+        basePrice: 178.92,
+        description: '纳斯达克100 ETF'
+      },
+      {
+        id: 't10y',
+        name: '10年期国债',
+        symbol: '^TNX',
+        category: 'bond',
+        icon: 'fa-landmark',
+        color: '#f59e0b',
+        basePrice: 4.425,
+        description: '美国10年期国债收益率'
+      },
+      {
+        id: 't2y',
+        name: '2年期国债',
+        symbol: '2YY=F',
+        category: 'bond',
+        icon: 'fa-landmark',
+        color: '#84cc16',
+        basePrice: 4.680,
+        description: '美国2年期国债收益率'
+      },
+      {
+        id: 't30y',
+        name: '30年期国债',
+        symbol: '^TYX',
+        category: 'bond',
+        icon: 'fa-landmark',
+        color: '#ec4899',
+        basePrice: 4.575,
+        description: '美国30年期国债收益率'
+      },
+      {
+        id: 'vix',
+        name: 'VIX恐慌指数',
+        symbol: '^VIX',
+        category: 'index',
+        icon: 'fa-bolt',
+        color: '#f43f5e',
+        basePrice: 13.25,
+        description: '波动率指数'
+      }
+    ];
+
+    // State
+    let currentData = {};
+    let currentFilter = 'all';
+    let isLoading = false;
+
+    // Generate random price movement (fallback when API unavailable)
+    function generatePrice(basePrice) {
+      const change = (Math.random() - 0.5) * 0.02 * basePrice;
+      const price = basePrice + change;
+      const changePercent = (change / basePrice) * 100;
+      return {
+        price: price,
+        change: change,
+        changePercent: changePercent,
+        isUp: change >= 0
+      };
+    }
+
+    // Fetch real prices from backend API
+    async function fetchPrices() {
+      if (isLoading) return;
+      isLoading = true;
+      const icon = document.getElementById('refreshIcon');
+      icon.classList.add('refresh-spin');
+
+      const symbols = macroData.map(item => item.symbol);
+      try {
+        const resp = await fetch('/api/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbols })
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const result = await resp.json();
+
+        macroData.forEach(item => {
+          const d = result[item.symbol];
+          if (d) {
+            currentData[item.id] = {
+              price: d.price,
+              change: d.change,
+              changePercent: d.changePercent,
+              high: d.high,
+              low: d.low,
+              open: d.open,
+              previousClose: d.previousClose,
+              isUp: d.isUp
+            };
+          } else {
+            // Symbol not found in response, use fallback
+            if (!currentData[item.id]) {
+              currentData[item.id] = generatePrice(item.basePrice);
+            }
+          }
+        });
+        console.log('Data fetched from API successfully');
+      } catch (err) {
+        console.warn('API unavailable, using local fallback:', err.message);
+        macroData.forEach(item => {
+          currentData[item.id] = generatePrice(item.basePrice);
+        });
+      } finally {
+        isLoading = false;
+        icon.classList.remove('refresh-spin');
+        renderCards();
+        updateTime();
+      }
+    }
+
+    // Generate sparkline data
+    function generateSparkline(isUp) {
+      const points = [];
+      let value = 50;
+      for (let i = 0; i < 20; i++) {
+        value += (Math.random() - 0.5) * 15;
+        value = Math.max(10, Math.min(90, value));
+        points.push(value);
+      }
+      // Trend towards up or down
+      if (isUp) {
+        points[points.length - 1] = Math.min(90, points[0] + 20);
+      } else {
+        points[points.length - 1] = Math.max(10, points[0] - 20);
+      }
+      return points;
+    }
+
+    // Create sparkline SVG path
+    function createSparklinePath(points) {
+      const width = 80;
+      const height = 32;
+      const step = width / (points.length - 1);
+      let path = `M 0 ${height - points[0] * height / 100}`;
+      for (let i = 1; i < points.length; i++) {
+        const x = i * step;
+        const y = height - points[i] * height / 100;
+        path += ` L ${x} ${y}`;
+      }
+      return path;
+    }
+
+    // Format price
+    function formatPrice(price, id) {
+      if (price == null || isNaN(price)) return '--';
+      if (id === 'usdeur') {
+        return price.toFixed(4);
+      } else if (['t10y', 't2y', 't30y'].includes(id)) {
+        return price.toFixed(3) + '%';
+      } else if (price < 1) {
+        return price.toFixed(4);
+      } else if (price < 100) {
+        return price.toFixed(2);
+      } else {
+        return price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+    }
+
+    // Create card HTML
+    function createCard(item, data) {
+      const sparkline = generateSparkline(data.isUp);
+      const sparklinePath = createSparklinePath(sparkline);
+      const strokeColor = data.isUp ? '#10b981' : '#ef4444';
+
+      return `
 <div class="card-hover glass rounded-2xl p-4 cursor-pointer fade-in" data-id="${item.id}" data-category="${item.category}">
 <div class="flex items-start justify-between mb-3">
 <div class="flex items-center gap-3">
@@ -478,146 +561,235 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, item.id)}
 </div>
 </div>
 `;
-}
+    }
 
-// Render cards
-function renderCards() {
-const container = document.getElementById('cardsContainer');
-let html = '';
-let upCount = 0;
-let downCount = 0;
+    // Render cards
+    function renderCards() {
+      const container = document.getElementById('cardsContainer');
+      let html = '';
+      let upCount = 0;
+      let downCount = 0;
 
-macroData.forEach(item => {
-if (currentFilter !== 'all' && item.category !== currentFilter) return;
+      macroData.forEach(item => {
+        if (currentFilter !== 'all' && item.category !== currentFilter) return;
 
-const data = currentData[item.id] || generatePrice(item.basePrice);
-currentData[item.id] = data;
+        const data = currentData[item.id] || generatePrice(item.basePrice);
+        currentData[item.id] = data;
 
-if (data.isUp) upCount++;
-else downCount++;
+        if (data.isUp) upCount++;
+        else downCount++;
 
-html += createCard(item, data);
-});
+        html += createCard(item, data);
+      });
 
-container.innerHTML = html;
-document.getElementById('upCount').textContent = upCount;
-document.getElementById('downCount').textContent = downCount;
+      container.innerHTML = html;
+      document.getElementById('upCount').textContent = upCount;
+      document.getElementById('downCount').textContent = downCount;
 
-// Add click handlers
-document.querySelectorAll('.card-hover').forEach(card => {
-card.addEventListener('click', () => openModal(card.dataset.id));
-});
-}
+      // Add click handlers
+      document.querySelectorAll('.card-hover').forEach(card => {
+        card.addEventListener('click', () => openModal(card.dataset.id));
+      });
+    }
 
-// Update prices — now calls real API
-function updatePrices() {
-  fetchPrices();
-}
+    // Update prices — now calls real API
+    function updatePrices() {
+      fetchPrices();
+    }
 
-// Update time
-function updateTime() {
-const now = new Date();
-document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('zh-CN');
-}
+    // Update time
+    function updateTime() {
+      const now = new Date();
+      document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('zh-CN');
+    }
 
-// Open modal
-function openModal(id) {
-const item = macroData.find(i => i.id === id);
-const data = currentData[id];
-const modal = document.getElementById('detailModal');
+    // Open modal
+    async function openModal(id) {
+      const item = macroData.find(i => i.id === id);
+      const data = currentData[id];
+      const modal = document.getElementById('detailModal');
 
-document.getElementById('modalIcon').innerHTML = `<i class="fas ${item.icon}" style="color: ${item.color}"></i>`;
-document.getElementById('modalIcon').style.background = `linear-gradient(135deg, ${item.color}40, ${item.color}20)`;
-document.getElementById('modalTitle').textContent = item.name;
-document.getElementById('modalSubtitle').textContent = item.description;
-document.getElementById('modalPrice').textContent = formatPrice(data.price, id);
-document.getElementById('modalChange').innerHTML = `
+      document.getElementById('modalIcon').innerHTML = `<i class="fas ${item.icon}" style="color: ${item.color}"></i>`;
+      document.getElementById('modalIcon').style.background = `linear-gradient(135deg, ${item.color}40, ${item.color}20)`;
+      document.getElementById('modalTitle').textContent = item.name;
+      document.getElementById('modalSubtitle').textContent = item.description;
+      document.getElementById('modalPrice').textContent = formatPrice(data.price, id);
+      document.getElementById('modalChange').innerHTML = `
 <span class="${data.isUp ? 'text-up' : 'text-down'}">
 ${data.isUp ? '<i class="fas fa-caret-up mr-1"></i>' : '<i class="fas fa-caret-down mr-1"></i>'}
 ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}${data.changePercent.toFixed(2)}%)
 </span>
 `;
 
-  // Use real data if available, fallback to estimate
-  const high = data.high || data.price * (1 + Math.random() * 0.02);
-  const low = data.low || data.price * (1 - Math.random() * 0.02);
-  const open = data.open || (data.price - data.change);
-  const volatility = high && low ? ((high - low) / low * 100).toFixed(2) : (Math.random() * 2 + 0.5).toFixed(2);
+      // Use real data if available, fallback to estimate
+      const high = data.high || data.price * (1 + Math.random() * 0.02);
+      const low = data.low || data.price * (1 - Math.random() * 0.02);
+      const open = data.open || (data.price - data.change);
+      const volatility = high && low ? ((high - low) / low * 100).toFixed(2) : (Math.random() * 2 + 0.5).toFixed(2);
 
-  document.getElementById('modalHigh').textContent = formatPrice(high, id);
-  document.getElementById('modalLow').textContent = formatPrice(low, id);
-  document.getElementById('modalOpen').textContent = formatPrice(open, id);
-  document.getElementById('modalVolatility').textContent = volatility + '%';
+      document.getElementById('modalHigh').textContent = formatPrice(high, id);
+      document.getElementById('modalLow').textContent = formatPrice(low, id);
+      document.getElementById('modalOpen').textContent = formatPrice(open, id);
+      document.getElementById('modalVolatility').textContent = volatility + '%';
 
-// Draw chart
-const chartPoints = [];
-let val = 40;
-for (let i = 0; i < 30; i++) {
-val += (Math.random() - 0.5) * 10;
-val = Math.max(10, Math.min(90, val));
-chartPoints.push(val);
-}
-if (data.isUp) chartPoints[chartPoints.length - 1] = Math.min(90, chartPoints[0] + 15);
-else chartPoints[chartPoints.length - 1] = Math.max(10, chartPoints[0] - 15);
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
 
-let pathD = `M 0 ${80 - chartPoints[0] * 0.8}`;
-chartPoints.forEach((p, i) => {
-pathD += ` L ${i * 10} ${80 - p * 0.8}`;
-});
+      // 重置周期选择并加载默认数据
+      document.querySelectorAll('.range-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-accent/20', 'text-accent');
+        if (btn.dataset.range === '1d') {
+          btn.classList.add('active', 'bg-accent/20', 'text-accent');
+        }
+      });
+      fetchChartData(item.symbol, '1d');
+    }
 
-const chartColor = data.isUp ? '#10b981' : '#ef4444';
-document.getElementById('modalChart').innerHTML = `
-<path d="${pathD}" stroke="${chartColor}" stroke-width="2" fill="none" class="sparkline"/>
-`;
+    // Fetch historical chart data
+    async function fetchChartData(symbol, range) {
+      const loading = document.getElementById('chartLoading');
+      const svg = document.getElementById('modalChart');
+      loading.classList.remove('hidden');
 
-modal.classList.remove('hidden');
-modal.classList.add('flex');
-}
+      try {
+        const resp = await fetch(`/api/history/${encodeURIComponent(symbol)}?range=${range}`);
+        if (!resp.ok) throw new Error('API Error');
+        const data = await resp.json();
 
-// Close modal
-function closeModal() {
-const modal = document.getElementById('detailModal');
-modal.classList.add('hidden');
-modal.classList.remove('flex');
-}
+        if (data.length > 0) {
+          renderModalChart(data, symbol);
+        } else {
+          svg.innerHTML = '<text x="150" y="50" text-anchor="middle" fill="#64748b" font-size="12">暂无数据</text>';
+        }
+      } catch (err) {
+        console.error('Chart fetch error:', err);
+        svg.innerHTML = '<text x="150" y="50" text-anchor="middle" fill="#ef4444" font-size="12">加载失败</text>';
+      } finally {
+        loading.classList.add('hidden');
+      }
+    }
 
-// Filter buttons
-document.querySelectorAll('.filter-btn').forEach(btn => {
-btn.addEventListener('click', () => {
-document.querySelectorAll('.filter-btn').forEach(b => {
-b.classList.remove('active');
-b.style.background = '';
-b.style.color = '';
-});
-btn.classList.add('active');
-btn.style.background = 'rgba(251, 191, 36, 0.2)';
-btn.style.color = '#fbbf24';
-currentFilter = btn.dataset.filter;
-renderCards();
-});
-});
+    // Render detailed modal chart
+    function renderModalChart(data, symbol) {
+      const svg = document.getElementById('modalChart');
+      const prices = data.map(d => d.price);
+      const min = Math.min(...prices);
+      const max = Math.max(...prices);
+      const range = max - min || 1;
+      const padding = range * 0.1;
 
-// Refresh button
-document.getElementById('refreshBtn').addEventListener('click', () => {
-  updatePrices();
-});
+      const width = 300;
+      const height = 100;
+      const step = width / (data.length - 1 || 1);
 
-// Close modal handlers
-document.getElementById('closeModal').addEventListener('click', closeModal);
-document.getElementById('detailModal').addEventListener('click', (e) => {
-if (e.target.id === 'detailModal') closeModal();
-});
+      const getY = (p) => height - ((p - (min - padding)) / (range + 2 * padding)) * height;
 
-// Initialize — fetch real data on load
-fetchPrices();
+      let pathD = `M 0 ${getY(prices[0])}`;
+      prices.forEach((p, i) => {
+        pathD += ` L ${i * step} ${getY(p)}`;
+      });
 
-// Auto refresh every 30 seconds
-setInterval(updatePrices, 30000);
+      const firstPrice = prices[0];
+      const lastPrice = prices[prices.length - 1];
+      const change = lastPrice - firstPrice;
+      const changePercent = (change / firstPrice) * 100;
+      const isUp = change >= 0;
+      const chartColor = isUp ? '#10b981' : '#ef4444';
 
-// Set initial active filter
-document.querySelector('.filter-btn[data-filter="all"]').style.background = 'rgba(251, 191, 36, 0.2)';
-document.querySelector('.filter-btn[data-filter="all"]').style.color = '#fbbf24';
-</script>
+      // Update modal stats to match period
+      const item = macroData.find(m => m.symbol === symbol);
+      const id = item ? item.id : '';
+      const rangeLabel = document.querySelector('.range-btn.active')?.textContent || '周期';
+
+      document.getElementById('modalPrice').textContent = formatPrice(lastPrice, id);
+      document.getElementById('modalChange').innerHTML = `
+    <span class="${isUp ? 'text-up' : 'text-down'}">
+      ${isUp ? '<i class="fas fa-caret-up mr-1"></i>' : '<i class="fas fa-caret-down mr-1"></i>'}
+      ${isUp ? '+' : ''}${formatPrice(change, id)} (${isUp ? '+' : ''}${changePercent.toFixed(2)}%)
+      <span class="text-[10px] opacity-60 ml-1">(${rangeLabel})</span>
+    </span>
+  `;
+
+      document.getElementById('modalHigh').textContent = formatPrice(max, id);
+      document.getElementById('modalLow').textContent = formatPrice(min, id);
+      document.getElementById('modalOpen').textContent = formatPrice(firstPrice, id);
+      document.getElementById('modalVolatility').textContent = ((max - min) / min * 100).toFixed(2) + '%';
+
+      // Create gradient
+      const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`;
+
+      svg.innerHTML = `
+    <defs>
+      <linearGradient id="${gradientId}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${chartColor}" stop-opacity="0.3" />
+        <stop offset="100%" stop-color="${chartColor}" stop-opacity="0" />
+      </linearGradient>
+    </defs>
+    <path d="${pathD} L ${width} ${height} L 0 ${height} Z" fill="url(#${gradientId})" />
+    <path d="${pathD}" stroke="${chartColor}" stroke-width="2" fill="none" class="sparkline" style="filter: drop-shadow(0 0 4px ${chartColor}40)"/>
+  `;
+    }
+
+    // Range selector handlers
+    document.addEventListener('click', (e) => {
+      if (e.target.classList.contains('range-btn')) {
+        const symbol = document.getElementById('modalSubtitle').previousElementSibling.textContent; // This is a bit hacky, let's fix the modal state
+        const targetSymbol = macroData.find(m => m.name === document.getElementById('modalTitle').textContent)?.symbol;
+
+        if (!targetSymbol) return;
+
+        document.querySelectorAll('.range-btn').forEach(btn => {
+          btn.classList.remove('active', 'bg-accent/20', 'text-accent');
+        });
+        e.target.classList.add('active', 'bg-accent/20', 'text-accent');
+
+        fetchChartData(targetSymbol, e.target.dataset.range);
+      }
+    });
+    // Close modal
+    function closeModal() {
+      const modal = document.getElementById('detailModal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    // Filter buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => {
+          b.classList.remove('active');
+          b.style.background = '';
+          b.style.color = '';
+        });
+        btn.classList.add('active');
+        btn.style.background = 'rgba(251, 191, 36, 0.2)';
+        btn.style.color = '#fbbf24';
+        currentFilter = btn.dataset.filter;
+        renderCards();
+      });
+    });
+
+    // Refresh button
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      updatePrices();
+    });
+
+    // Close modal handlers
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('detailModal').addEventListener('click', (e) => {
+      if (e.target.id === 'detailModal') closeModal();
+    });
+
+    // Initialize — fetch real data on load
+    fetchPrices();
+
+    // Auto refresh every 30 seconds
+    setInterval(updatePrices, 30000);
+
+    // Set initial active filter
+    document.querySelector('.filter-btn[data-filter="all"]').style.background = 'rgba(251, 191, 36, 0.2)';
+    document.querySelector('.filter-btn[data-filter="all"]').style.color = '#fbbf24';
+  </script>
 </body>
-</html>
 
+</html>

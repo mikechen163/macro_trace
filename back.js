@@ -76,6 +76,45 @@ async function fetchQuote(symbol) {
   };
 }
 
+// 获取历史图表数据
+async function fetchHistory(symbol, range = '1d') {
+  const cacheKey = `chart_${symbol}_${range}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached;
+
+  if (!crumb || !cookieStr) {
+    const ok = await initCrumb();
+    if (!ok) throw new Error('Cannot acquire Yahoo Finance crumb');
+  }
+
+  // 映射时间范围到 Yahoo API 参数
+  // range: 1d, 5d, 1mo, 3mo, 6mo, 1y
+  // interval: 5m, 15m, 30m, 60m, 1d, 1wk, 1mo
+  let interval = '1d';
+  if (range === '1d') interval = '5m';
+  else if (range === '5d') interval = '15m';
+
+  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}&crumb=${encodeURIComponent(crumb)}`;
+  const resp = await fetch(url, {
+    headers: { 'Cookie': cookieStr, 'User-Agent': 'Mozilla/5.0' }
+  });
+
+  if (!resp.ok) throw new Error(`Yahoo Chart API error ${resp.status}`);
+  const json = await resp.json();
+  const result = json.chart.result[0];
+  const timestamps = result.timestamp || [];
+  const prices = result.indicators.quote[0].close || [];
+
+  // 清洗数据，过滤 null
+  const history = timestamps.map((t, i) => ({
+    time: t,
+    price: prices[i]
+  })).filter(h => h.price !== null);
+
+  cache.set(cacheKey, history, 60); // 历史数据缓存60秒
+  return history;
+}
+
 // ============ API Routes ============
 
 // 单个行情
@@ -125,6 +164,20 @@ app.post('/api/batch', async (req, res) => {
     await Promise.all(promises);
     res.json(results);
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 历史数据
+app.get('/api/history/:symbol', async (req, res) => {
+  const { symbol } = req.params;
+  const { range } = req.query; // 1d, 5d, 1mo, 3mo, 6mo, 1y
+
+  try {
+    const data = await fetchHistory(symbol, range || '1d');
+    res.json(data);
+  } catch (error) {
+    console.error(`History error [${symbol}]:`, error.message);
     res.status(500).json({ error: error.message });
   }
 });
