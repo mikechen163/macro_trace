@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>全球宏观数据追踪</title>
+  <title>Global Macro Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -148,18 +148,18 @@
         </div>
         <div>
           <h1 class="text-lg md:text-xl font-bold text-white">MacroTracker</h1>
-          <p class="text-xs text-muted hidden sm:block">全球宏观数据追踪</p>
+          <p class="text-xs text-muted hidden sm:block">Global Macro Data Tracker</p>
         </div>
       </div>
       <div class="flex items-center gap-2 md:gap-4">
         <div class="flex items-center gap-2 text-xs text-muted">
           <span class="pulse-dot w-2 h-2 rounded-full bg-up"></span>
-          <span class="hidden sm:inline">实时更新</span>
+          <span class="hidden sm:inline">Live</span>
         </div>
         <button id="refreshBtn"
           class="glass px-3 py-2 rounded-xl text-sm hover:bg-white/10 transition-all flex items-center gap-2">
           <i class="fas fa-sync-alt" id="refreshIcon"></i>
-          <span class="hidden sm:inline">刷新</span>
+          <span class="hidden sm:inline">Refresh</span>
         </button>
       </div>
     </div>
@@ -170,19 +170,19 @@
     <!-- Stats Overview -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
       <div class="glass rounded-2xl p-4 fade-in">
-        <p class="text-xs text-muted mb-1">追踪资产</p>
+        <p class="text-xs text-muted mb-1">Assets</p>
         <p class="text-2xl font-bold text-accent" id="totalAssets">12</p>
       </div>
       <div class="glass rounded-2xl p-4 fade-in" style="animation-delay: 0.1s">
-        <p class="text-xs text-muted mb-1">上涨资产</p>
+        <p class="text-xs text-muted mb-1">Gainers</p>
         <p class="text-2xl font-bold text-up" id="upCount">7</p>
       </div>
       <div class="glass rounded-2xl p-4 fade-in" style="animation-delay: 0.2s">
-        <p class="text-xs text-muted mb-1">下跌资产</p>
+        <p class="text-xs text-muted mb-1">Losers</p>
         <p class="text-2xl font-bold text-down" id="downCount">5</p>
       </div>
       <div class="glass rounded-2xl p-4 fade-in" style="animation-delay: 0.3s">
-        <p class="text-xs text-muted mb-1">最后更新</p>
+        <p class="text-xs text-muted mb-1">Last Update</p>
         <p class="text-sm font-medium text-white" id="lastUpdate">--:--:--</p>
       </div>
     </div>
@@ -191,22 +191,22 @@
     <div class="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
       <button class="filter-btn active glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all"
         data-filter="all">
-        <i class="fas fa-globe mr-2"></i>全部
+        <i class="fas fa-globe mr-2"></i>All
       </button>
       <button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all"
         data-filter="commodity">
-        <i class="fas fa-coins mr-2"></i>大宗商品
+        <i class="fas fa-coins mr-2"></i>Commodities
       </button>
       <button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all"
         data-filter="forex">
-        <i class="fas fa-exchange-alt mr-2"></i>外汇
+        <i class="fas fa-exchange-alt mr-2"></i>Forex
       </button>
       <button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all"
         data-filter="index">
-        <i class="fas fa-chart-bar mr-2"></i>股指
+        <i class="fas fa-chart-bar mr-2"></i>Indices
       </button>
       <button class="filter-btn glass px-4 py-2 rounded-xl text-sm whitespace-nowrap transition-all" data-filter="bond">
-        <i class="fas fa-landmark mr-2"></i>国债
+        <i class="fas fa-landmark mr-2"></i>Bonds
       </button>
     </div>
 
@@ -241,23 +241,23 @@
         </div>
         <div class="glass rounded-2xl p-4 mb-4">
           <div class="flex justify-between text-sm mb-2" id="rowPrevClose">
-            <span class="text-muted">昨日收盘</span>
+            <span class="text-muted">Prev Close</span>
             <span id="modalPrevClose" class="font-medium"></span>
           </div>
           <div class="flex justify-between text-sm mb-2">
-            <span class="text-muted" id="labelOpen">今开价</span>
+            <span class="text-muted" id="labelOpen">Open</span>
             <span id="modalOpen" class="font-medium"></span>
           </div>
           <div class="flex justify-between text-sm mb-2">
-            <span class="text-muted" id="labelHigh">期间最高</span>
+            <span class="text-muted" id="labelHigh">High</span>
             <span id="modalHigh" class="font-medium"></span>
           </div>
           <div class="flex justify-between text-sm mb-2">
-            <span class="text-muted" id="labelLow">期间最低</span>
+            <span class="text-muted" id="labelLow">Low</span>
             <span id="modalLow" class="font-medium"></span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-muted" id="labelVolTitle">日内波幅</span>
+            <span class="text-muted" id="labelVolTitle">Day Range</span>
             <span id="modalVolatility" class="font-medium"></span>
           </div>
         </div>
@@ -270,15 +270,15 @@
             class="w-full h-24 overflow-visible mb-3"></svg>
           <div class="flex flex-wrap gap-2" id="rangeSelector">
             <button class="range-btn active glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
-              data-range="1d">1天</button>
+              data-range="1d">1D</button>
             <button class="range-btn glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
-              data-range="5d">5天</button>
+              data-range="5d">5D</button>
             <button class="range-btn glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
-              data-range="1mo">1月</button>
+              data-range="1mo">1M</button>
             <button class="range-btn glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
-              data-range="3mo">3月</button>
+              data-range="3mo">3M</button>
             <button class="range-btn glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
-              data-range="1y">1年</button>
+              data-range="1y">1Y</button>
           </div>
         </div>
       </div>
@@ -290,63 +290,63 @@
     const macroData = [
       {
         id: 'gold',
-        name: '黄金',
+        name: 'Gold',
         symbol: 'GC=F',
         category: 'commodity',
         icon: 'fa-coins',
         color: '#fbbf24',
         basePrice: 2342.50,
-        description: '黄金期货'
+        description: 'Gold Futures'
       },
       {
         id: 'silver',
-        name: '白银',
+        name: 'Silver',
         symbol: 'SI=F',
         category: 'commodity',
         icon: 'fa-circle',
         color: '#94a3b8',
         basePrice: 27.85,
-        description: '白银期货'
+        description: 'Silver Futures'
       },
       {
         id: 'oil',
-        name: '原油',
+        name: 'Crude Oil',
         symbol: 'CL=F',
         category: 'commodity',
         icon: 'fa-oil-can',
         color: '#1e293b',
         basePrice: 78.45,
-        description: 'WTI原油期货'
+        description: 'WTI Crude Oil Futures'
       },
       {
         id: 'dxy',
-        name: '美元指数',
+        name: 'USD Index',
         symbol: 'DX-Y.NYB',
         category: 'forex',
         icon: 'fa-dollar-sign',
         color: '#10b981',
         basePrice: 104.25,
-        description: '美元指数DXY'
+        description: 'US Dollar Index DXY'
       },
       {
         id: 'usdjpy',
-        name: '美元日元',
+        name: 'USD/JPY',
         symbol: 'USDJPY=X',
         category: 'forex',
         icon: 'fa-yen-sign',
         color: '#ef4444',
         basePrice: 154.85,
-        description: 'USD/JPY汇率'
+        description: 'USD/JPY Exchange Rate'
       },
       {
         id: 'usdeur',
-        name: '美元欧元',
+        name: 'USD/EUR',
         symbol: 'USDEUR=X',
         category: 'forex',
         icon: 'fa-euro-sign',
         color: '#06b6d4',
         basePrice: 0.9235,
-        description: 'USD/EUR汇率'
+        description: 'USD/EUR Exchange Rate'
       },
       {
         id: 'spy',
@@ -356,7 +356,7 @@
         icon: 'fa-chart-line',
         color: '#3b82f6',
         basePrice: 512.35,
-        description: '标普500 ETF'
+        description: 'S&P 500 ETF'
       },
       {
         id: 'qqq',
@@ -366,47 +366,47 @@
         icon: 'fa-chart-area',
         color: '#8b5cf6',
         basePrice: 178.92,
-        description: '纳斯达克100 ETF'
+        description: 'Nasdaq 100 ETF'
       },
       {
         id: 't10y',
-        name: '10年期国债',
+        name: '10Y Treasury',
         symbol: '^TNX',
         category: 'bond',
         icon: 'fa-landmark',
         color: '#f59e0b',
         basePrice: 4.425,
-        description: '美国10年期国债收益率'
+        description: 'US 10-Year Treasury Yield'
       },
       {
         id: 't2y',
-        name: '2年期国债',
+        name: '2Y Treasury',
         symbol: '2YY=F',
         category: 'bond',
         icon: 'fa-landmark',
         color: '#84cc16',
         basePrice: 4.680,
-        description: '美国2年期国债收益率'
+        description: 'US 2-Year Treasury Yield'
       },
       {
         id: 't30y',
-        name: '30年期国债',
+        name: '30Y Treasury',
         symbol: '^TYX',
         category: 'bond',
         icon: 'fa-landmark',
         color: '#ec4899',
         basePrice: 4.575,
-        description: '美国30年期国债收益率'
+        description: 'US 30-Year Treasury Yield'
       },
       {
         id: 'vix',
-        name: 'VIX恐慌指数',
+        name: 'VIX',
         symbol: '^VIX',
         category: 'index',
         icon: 'fa-bolt',
         color: '#f43f5e',
         basePrice: 13.25,
-        description: '波动率指数'
+        description: 'Volatility Index'
       }
     ];
 
@@ -661,11 +661,11 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}$
           const prevClose = range === '1d' ? currentData[id]?.previousClose : null;
           renderModalChart(data, symbol, prevClose);
         } else {
-          svg.innerHTML = '<text x="150" y="50" text-anchor="middle" fill="#64748b" font-size="12">暂无数据</text>';
+          svg.innerHTML = '<text x="150" y="50" text-anchor="middle" fill="#64748b" font-size="12">No Data</text>';
         }
       } catch (err) {
         console.error('Chart fetch error:', err);
-        svg.innerHTML = '<text x="150" y="50" text-anchor="middle" fill="#ef4444" font-size="12">加载失败</text>';
+        svg.innerHTML = '<text x="150" y="50" text-anchor="middle" fill="#ef4444" font-size="12">Load Failed</text>';
       } finally {
         loading.classList.add('hidden');
       }
@@ -704,11 +704,11 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}$
       // Update modal stats to match period
       const item = macroData.find(m => m.symbol === symbol);
       const id = item ? item.id : '';
-      const rangeLabel = document.querySelector('.range-btn.active')?.textContent || '周期';
+      const rangeLabel = document.querySelector('.range-btn.active')?.textContent || 'Period';
 
       document.getElementById('modalPrice').textContent = formatPrice(lastPrice, id);
 
-      const is1D = rangeLabel.includes('1天');
+      const is1D = rangeLabel.includes('1D');
       const quoteData = currentData[id];
 
       // 如果是1天周期，优先使用官方行情数据(quoteData)以确保和首页完全一致
@@ -732,8 +732,8 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}$
       document.getElementById('modalOpen').textContent = formatPrice(dOpen, id);
 
       document.getElementById('rowPrevClose').style.display = is1D ? 'flex' : 'none';
-      document.getElementById('labelOpen').textContent = is1D ? '今开价' : '期间起点';
-      document.getElementById('labelVolTitle').textContent = is1D ? '日内波幅' : '期间波幅';
+      document.getElementById('labelOpen').textContent = is1D ? 'Open' : 'Period Start';
+      document.getElementById('labelVolTitle').textContent = is1D ? 'Day Range' : 'Period Range';
 
       if (is1D && (overridePrevClose || quoteData?.previousClose)) {
         document.getElementById('modalPrevClose').textContent = formatPrice(overridePrevClose || quoteData?.previousClose, id);
