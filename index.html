@@ -240,6 +240,14 @@
           <p id="modalChange" class="text-lg"></p>
         </div>
         <div class="glass rounded-2xl p-4 mb-4">
+          <div class="flex justify-between text-sm mb-2" id="rowPrevClose">
+            <span class="text-muted">昨日收盘</span>
+            <span id="modalPrevClose" class="font-medium"></span>
+          </div>
+          <div class="flex justify-between text-sm mb-2">
+            <span class="text-muted" id="labelOpen">今开价</span>
+            <span id="modalOpen" class="font-medium"></span>
+          </div>
           <div class="flex justify-between text-sm mb-2">
             <span class="text-muted" id="labelHigh">期间最高</span>
             <span id="modalHigh" class="font-medium"></span>
@@ -248,17 +256,19 @@
             <span class="text-muted" id="labelLow">期间最低</span>
             <span id="modalLow" class="font-medium"></span>
           </div>
-          <div class="flex justify-between text-sm mb-2">
-            <span class="text-muted" id="labelOpen">开盘价</span>
-            <span id="modalOpen" class="font-medium"></span>
-          </div>
           <div class="flex justify-between text-sm">
-            <span class="text-muted">波动率</span>
+            <span class="text-muted" id="labelVolTitle">日内波幅</span>
             <span id="modalVolatility" class="font-medium"></span>
           </div>
         </div>
+        <div class="glass rounded-2xl p-4 mb-4 relative min-h-[120px]">
+          <div id="chartLoading"
+            class="absolute inset-0 flex items-center justify-center bg-secondary/40 backdrop-blur-sm rounded-2xl hidden">
+            <i class="fas fa-sync-alt refresh-spin text-accent"></i>
+          </div>
+          <svg id="modalChart" viewBox="0 0 300 100" class="w-full h-24 overflow-visible"></svg>
+        </div>
         <div class="glass rounded-2xl p-4 mb-4">
-          <p class="text-xs text-muted mb-3">时间周期</p>
           <div class="flex flex-wrap gap-2" id="rangeSelector">
             <button class="range-btn active glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
               data-range="1d">1天</button>
@@ -271,14 +281,6 @@
             <button class="range-btn glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
               data-range="1y">1年</button>
           </div>
-        </div>
-        <div class="glass rounded-2xl p-4 relative min-h-[120px]">
-          <p class="text-sm text-muted mb-3">历史走势</p>
-          <div id="chartLoading"
-            class="absolute inset-0 flex items-center justify-center bg-secondary/40 backdrop-blur-sm rounded-2xl hidden">
-            <i class="fas fa-sync-alt refresh-spin text-accent"></i>
-          </div>
-          <svg id="modalChart" viewBox="0 0 300 100" class="w-full h-24 overflow-visible"></svg>
         </div>
       </div>
     </div>
@@ -642,11 +644,11 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}$
           btn.classList.add('active', 'bg-accent/20', 'text-accent');
         }
       });
-      fetchChartData(item.symbol, '1d');
+      fetchChartData(item.symbol, '1d', item.id);
     }
 
     // Fetch historical chart data
-    async function fetchChartData(symbol, range) {
+    async function fetchChartData(symbol, range, id) {
       const loading = document.getElementById('chartLoading');
       const svg = document.getElementById('modalChart');
       loading.classList.remove('hidden');
@@ -657,7 +659,8 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}$
         const data = await resp.json();
 
         if (data.length > 0) {
-          renderModalChart(data, symbol);
+          const prevClose = range === '1d' ? currentData[id]?.previousClose : null;
+          renderModalChart(data, symbol, prevClose);
         } else {
           svg.innerHTML = '<text x="150" y="50" text-anchor="middle" fill="#64748b" font-size="12">暂无数据</text>';
         }
@@ -670,7 +673,7 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}$
     }
 
     // Render detailed modal chart
-    function renderModalChart(data, symbol) {
+    function renderModalChart(data, symbol, overridePrevClose = null) {
       const svg = document.getElementById('modalChart');
       const prices = data.map(d => d.price);
       const min = Math.min(...prices);
@@ -689,10 +692,13 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}$
         pathD += ` L ${i * step} ${getY(p)}`;
       });
 
-      const firstPrice = prices[0];
-      const lastPrice = prices[prices.length - 1];
-      const change = lastPrice - firstPrice;
-      const changePercent = (change / firstPrice) * 100;
+      const firstPrice = data[0].price;
+      const lastPrice = data[data.length - 1].price;
+
+      // 如果是1天周期，基准价格使用昨收，否则使用周期起点价格
+      const baselinePrice = overridePrevClose || firstPrice;
+      const change = lastPrice - baselinePrice;
+      const changePercent = (change / baselinePrice) * 100;
       const isUp = change >= 0;
       const chartColor = isUp ? '#10b981' : '#ef4444';
 
@@ -702,18 +708,45 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}$
       const rangeLabel = document.querySelector('.range-btn.active')?.textContent || '周期';
 
       document.getElementById('modalPrice').textContent = formatPrice(lastPrice, id);
-      document.getElementById('modalChange').innerHTML = `
-    <span class="${isUp ? 'text-up' : 'text-down'}">
-      ${isUp ? '<i class="fas fa-caret-up mr-1"></i>' : '<i class="fas fa-caret-down mr-1"></i>'}
-      ${isUp ? '+' : ''}${formatPrice(change, id)} (${isUp ? '+' : ''}${changePercent.toFixed(2)}%)
-      <span class="text-[10px] opacity-60 ml-1">(${rangeLabel})</span>
-    </span>
-  `;
 
-      document.getElementById('modalHigh').textContent = formatPrice(max, id);
-      document.getElementById('modalLow').textContent = formatPrice(min, id);
-      document.getElementById('modalOpen').textContent = formatPrice(firstPrice, id);
-      document.getElementById('modalVolatility').textContent = ((max - min) / min * 100).toFixed(2) + '%';
+      const is1D = rangeLabel.includes('1天');
+      const quoteData = currentData[id];
+
+      // 如果是1天周期，优先使用官方行情数据(quoteData)以确保和首页完全一致
+      const dHigh = (is1D && quoteData) ? quoteData.high : max;
+      const dLow = (is1D && quoteData) ? quoteData.low : min;
+      const dOpen = (is1D && quoteData) ? quoteData.open : firstPrice;
+      const dChange = (is1D && quoteData) ? quoteData.change : change;
+      const dChangePct = (is1D && quoteData) ? quoteData.changePercent : changePercent;
+
+      const dIsUp = dChange >= 0;
+      document.getElementById('modalChange').innerHTML = `
+        <span class="${dIsUp ? 'text-up' : 'text-down'}">
+          ${dIsUp ? '<i class="fas fa-caret-up mr-1"></i>' : '<i class="fas fa-caret-down mr-1"></i>'}
+          ${dIsUp ? '+' : ''}${formatPrice(dChange, id)} (${dIsUp ? '+' : ''}${dChangePct.toFixed(2)}%)
+          <span class="text-[10px] opacity-60 ml-1">(${rangeLabel})</span>
+        </span>
+      `;
+
+      document.getElementById('modalHigh').textContent = formatPrice(dHigh, id);
+      document.getElementById('modalLow').textContent = formatPrice(dLow, id);
+      document.getElementById('modalOpen').textContent = formatPrice(dOpen, id);
+
+      document.getElementById('rowPrevClose').style.display = is1D ? 'flex' : 'none';
+      document.getElementById('labelOpen').textContent = is1D ? '今开价' : '期间起点';
+      document.getElementById('labelVolTitle').textContent = is1D ? '日内波幅' : '期间波幅';
+
+      if (is1D && (overridePrevClose || quoteData?.previousClose)) {
+        document.getElementById('modalPrevClose').textContent = formatPrice(overridePrevClose || quoteData?.previousClose, id);
+      }
+
+      if (is1D && quoteData) {
+        // 1天视图：直接使用首页相同的changePercent，保持完全一致
+        document.getElementById('modalVolatility').textContent = Math.abs(dChangePct).toFixed(2) + '%';
+      } else {
+        // 其他周期：使用期间波幅
+        document.getElementById('modalVolatility').textContent = ((max - min) / min * 100).toFixed(2) + '%';
+      }
 
       // Create gradient
       const gradientId = `gradient-${Math.random().toString(36).substr(2, 9)}`;
@@ -733,17 +766,16 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}$
     // Range selector handlers
     document.addEventListener('click', (e) => {
       if (e.target.classList.contains('range-btn')) {
-        const symbol = document.getElementById('modalSubtitle').previousElementSibling.textContent; // This is a bit hacky, let's fix the modal state
-        const targetSymbol = macroData.find(m => m.name === document.getElementById('modalTitle').textContent)?.symbol;
-
-        if (!targetSymbol) return;
+        const title = document.getElementById('modalTitle').textContent;
+        const item = macroData.find(m => m.name === title);
+        if (!item) return;
 
         document.querySelectorAll('.range-btn').forEach(btn => {
           btn.classList.remove('active', 'bg-accent/20', 'text-accent');
         });
         e.target.classList.add('active', 'bg-accent/20', 'text-accent');
 
-        fetchChartData(targetSymbol, e.target.dataset.range);
+        fetchChartData(item.symbol, e.target.dataset.range, item.id);
       }
     });
     // Close modal
@@ -782,9 +814,6 @@ ${data.isUp ? '+' : ''}${formatPrice(data.change, id)} (${data.isUp ? '+' : ''}$
 
     // Initialize — fetch real data on load
     fetchPrices();
-
-    // Auto refresh every 30 seconds
-    setInterval(updatePrices, 30000);
 
     // Set initial active filter
     document.querySelector('.filter-btn[data-filter="all"]').style.background = 'rgba(251, 191, 36, 0.2)';
