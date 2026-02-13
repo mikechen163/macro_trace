@@ -261,14 +261,13 @@
             <span id="modalVolatility" class="font-medium"></span>
           </div>
         </div>
-        <div class="glass rounded-2xl p-4 mb-4 relative min-h-[120px]">
+        <div class="glass rounded-2xl px-2 py-4 relative min-h-[120px]">
           <div id="chartLoading"
             class="absolute inset-0 flex items-center justify-center bg-secondary/40 backdrop-blur-sm rounded-2xl hidden">
             <i class="fas fa-sync-alt refresh-spin text-accent"></i>
           </div>
-          <svg id="modalChart" viewBox="0 0 300 100" class="w-full h-24 overflow-visible"></svg>
-        </div>
-        <div class="glass rounded-2xl p-4 mb-4">
+          <svg id="modalChart" viewBox="0 0 300 100" preserveAspectRatio="none"
+            class="w-full h-24 overflow-visible mb-3"></svg>
           <div class="flex flex-wrap gap-2" id="rangeSelector">
             <button class="range-btn active glass px-3 py-1.5 rounded-lg text-xs hover:bg-white/10 transition-all"
               data-range="1d">1天</button>
